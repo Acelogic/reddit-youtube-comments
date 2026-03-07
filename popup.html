@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div id="header">
+    <span class="logo">R</span>
+    <span class="title">Reddit Threads</span>
+  </div>
+  <div id="content">
+    <div id="loading" class="state">Searching Reddit...</div>
+    <div id="empty" class="state hidden">No Reddit discussions found for this video.</div>
+    <div id="not-video" class="state hidden">Navigate to a YouTube video to see Reddit discussions.</div>
+    <div id="error" class="state hidden">Failed to search Reddit. Try again later.</div>
+    <div id="threads"></div>
+  </div>
+  <script src="utils.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>

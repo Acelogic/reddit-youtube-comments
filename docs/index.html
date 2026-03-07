@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Reddit Comments for YouTube</title>
+  <meta name="description" content="A clean, private browser extension that shows Reddit discussions on YouTube videos. No tracking, no data collection.">
+  <style>
+    :root {
+      --bg: #0f0f0f;
+      --surface: #1a1a1b;
+      --surface2: #272729;
+      --text: #f1f1f1;
+      --text2: #909090;
+      --accent: #FF4500;
+      --accent2: #ff6b3a;
+      --link: #3ea6ff;
+      --border: #3f3f3f;
+      --red: #ff0000;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    /* Hero */
+    .hero {
+      text-align: center;
+      padding: 80px 0 60px;
+    }
+
+    .hero-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 80px;
+      height: 80px;
+      border-radius: 20px;
+      background: var(--accent);
+      margin-bottom: 24px;
+      font-size: 40px;
+      font-weight: 800;
+      color: #fff;
+    }
+
+    h1 {
+      font-size: 48px;
+      font-weight: 800;
+      letter-spacing: -1px;
+      margin-bottom: 16px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero p {
+      font-size: 20px;
+      color: var(--text2);
+      max-width: 550px;
+      margin: 0 auto 32px;
+    }
+
+    .hero-buttons {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 14px 28px;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.2s;
+      border: none;
+      cursor: pointer;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    .btn-primary:hover {
+      background: var(--accent2);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 20px rgba(255, 69, 0, 0.3);
+    }
+
+    .btn-secondary {
+      background: var(--surface2);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .btn-secondary:hover {
+      background: var(--surface);
+      transform: translateY(-1px);
+    }
+
+    .btn svg { flex-shrink: 0; }
+
+    /* Warning banner */
+    .warning {
+      background: linear-gradient(135deg, #1a0500, #2a0a00);
+      border: 1px solid #5c1a00;
+      border-radius: 16px;
+      padding: 24px 28px;
+      margin: 0 auto 60px;
+      max-width: 700px;
+    }
+
+    .warning h3 {
+      color: var(--accent);
+      font-size: 16px;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .warning p {
+      color: #ccc;
+      font-size: 14px;
+      line-height: 1.7;
+    }
+
+    .warning code {
+      background: rgba(255,69,0,0.15);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 13px;
+      color: var(--accent2);
+    }
+
+    /* Features */
+    .features {
+      padding: 60px 0;
+    }
+
+    .features h2 {
+      text-align: center;
+      font-size: 32px;
+      margin-bottom: 48px;
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+      gap: 20px;
+    }
+
+    .feature {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 24px;
+      transition: border-color 0.2s;
+    }
+
+    .feature:hover {
+      border-color: var(--accent);
+    }
+
+    .feature-icon {
+      font-size: 28px;
+      margin-bottom: 12px;
+    }
+
+    .feature h3 {
+      font-size: 16px;
+      margin-bottom: 6px;
+    }
+
+    .feature p {
+      font-size: 13px;
+      color: var(--text2);
+      line-height: 1.6;
+    }
+
+    /* Install */
+    .install {
+      padding: 60px 0;
+    }
+
+    .install h2 {
+      text-align: center;
+      font-size: 32px;
+      margin-bottom: 40px;
+    }
+
+    .install-steps {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      max-width: 700px;
+      margin: 0 auto;
+    }
+
+    .install-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 28px;
+    }
+
+    .install-card h3 {
+      font-size: 18px;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .install-card ol {
+      padding-left: 20px;
+      color: var(--text2);
+      font-size: 14px;
+    }
+
+    .install-card li {
+      margin-bottom: 8px;
+    }
+
+    .install-card code {
+      background: var(--surface2);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 13px;
+    }
+
+    /* Privacy */
+    .privacy {
+      padding: 60px 0;
+      text-align: center;
+    }
+
+    .privacy h2 {
+      font-size: 32px;
+      margin-bottom: 16px;
+    }
+
+    .privacy p {
+      color: var(--text2);
+      font-size: 16px;
+      max-width: 500px;
+      margin: 0 auto;
+    }
+
+    .privacy-badges {
+      display: flex;
+      gap: 16px;
+      justify-content: center;
+      margin-top: 28px;
+      flex-wrap: wrap;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 100px;
+      padding: 8px 18px;
+      font-size: 14px;
+      color: var(--text);
+    }
+
+    .badge-green { border-color: #1a6b3c; color: #4ade80; }
+
+    /* Footer */
+    footer {
+      padding: 40px 0;
+      text-align: center;
+      color: var(--text2);
+      font-size: 13px;
+      border-top: 1px solid var(--border);
+    }
+
+    footer a {
+      color: var(--link);
+      text-decoration: none;
+    }
+
+    footer a:hover { text-decoration: underline; }
+
+    @media (max-width: 600px) {
+      h1 { font-size: 32px; }
+      .hero { padding: 50px 0 40px; }
+      .install-steps { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <section class="hero">
+      <div class="hero-icon">R</div>
+      <h1>Reddit Comments for YouTube</h1>
+      <p>See what Reddit thinks about the video you're watching. Clean, private, open source.</p>
+      <div class="hero-buttons">
+        <a href="https://github.com/mcruz/reddit-youtube-comments" class="btn btn-primary">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+          View on GitHub
+        </a>
+        <a href="https://github.com/mcruz/reddit-youtube-comments/archive/refs/heads/main.zip" class="btn btn-secondary">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+          Download ZIP
+        </a>
+      </div>
+    </section>
+
+    <div class="warning">
+      <h3>&#9888; Why this exists</h3>
+      <p>
+        The popular <strong>Comet</strong> extension was found to contain malicious code that steals your Reddit session data
+        and sends it to <code>45.76.61.40:5000</code> on install and daily.
+        With your session token, someone can act as you on Reddit.
+        <strong>If you have Comet installed, uninstall it immediately</strong> and reset your Reddit sessions.
+        This extension is a clean, open-source replacement with zero data collection.
+      </p>
+    </div>
+
+    <section class="features">
+      <h2>Features</h2>
+      <div class="features-grid">
+        <div class="feature">
+          <div class="feature-icon">&#128172;</div>
+          <h3>Reddit Discussions</h3>
+          <p>Finds all Reddit threads for the video you're watching. Multiple threads shown as scrollable cards.</p>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">&#127912;</div>
+          <h3>Smooth Toggle</h3>
+          <p>Switch between Reddit and YouTube comments with an animated pill toggle. No page reload.</p>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">&#128100;</div>
+          <h3>Profile Avatars</h3>
+          <p>Letter avatars load instantly. Real Reddit profile pictures lazy-load in the background.</p>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">&#128444;</div>
+          <h3>Inline Images</h3>
+          <p>Image links from imgur, i.redd.it, and more auto-expand inline. Post images display above comments.</p>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">&#127942;</div>
+          <h3>Awards & Flair</h3>
+          <p>See gilded comments, Reddit awards, user flairs, and post flairs just like on Reddit.</p>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">&#127769;</div>
+          <h3>Dark Mode</h3>
+          <p>Automatically matches YouTube's dark or light theme. Looks native on both.</p>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">&#128279;</div>
+          <h3>Fully Hyperlinked</h3>
+          <p>Subreddits, usernames, post titles, and comment permalinks all link directly to Reddit.</p>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">&#128274;</div>
+          <h3>Zero Tracking</h3>
+          <p>No analytics. No data collection. No external servers. Read-only Reddit API only.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="install">
+      <h2>Install</h2>
+      <div class="install-steps">
+        <div class="install-card">
+          <h3>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="#ff6611"><path d="M12 0C5.37 0 0 5.37 0 12s5.37 12 12 12 12-5.37 12-12S18.63 0 12 0zm5.18 16.07c-.2.56-.92.72-1.42.44a9.28 9.28 0 01-3.54-.02c-.5.28-1.22.12-1.42-.44-.18-.5.08-1.06.56-1.28-.06-.84.3-1.62.92-2.16-.76-.22-1.32-.86-1.32-1.66 0-.96.78-1.74 1.74-1.74h.04c-.04-.16-.06-.34-.06-.52 0-1.36 1.1-2.46 2.46-2.46 1.36 0 2.46 1.1 2.46 2.46 0 .18-.02.36-.06.52h.04c.96 0 1.74.78 1.74 1.74 0 .8-.56 1.44-1.32 1.66.62.54.98 1.32.92 2.16.48.22.74.78.56 1.28z"/></svg>
+            Firefox
+          </h3>
+          <ol>
+            <li>Open <code>about:debugging</code></li>
+            <li>Click <strong>"Load Temporary Add-on"</strong></li>
+            <li>Select <code>manifest.json</code></li>
+          </ol>
+        </div>
+        <div class="install-card">
+          <h3>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="#4285f4"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4" fill="#fff"/></svg>
+            Chrome
+          </h3>
+          <ol>
+            <li>Open <code>chrome://extensions</code></li>
+            <li>Enable <strong>"Developer mode"</strong></li>
+            <li>Click <strong>"Load unpacked"</strong> and select the folder</li>
+          </ol>
+        </div>
+      </div>
+    </section>
+
+    <section class="privacy">
+      <h2>Privacy First</h2>
+      <p>This extension makes zero external calls beyond Reddit's public API. Your data stays on your machine.</p>
+      <div class="privacy-badges">
+        <span class="badge badge-green">&#10003; No analytics</span>
+        <span class="badge badge-green">&#10003; No tracking</span>
+        <span class="badge badge-green">&#10003; No credentials</span>
+        <span class="badge badge-green">&#10003; Open source</span>
+      </div>
+    </section>
+  </div>
+
+  <footer>
+    <div class="container">
+      Built with plain JavaScript. No frameworks, no bundlers, no nonsense.
+      <br>
+      <a href="https://github.com/mcruz/reddit-youtube-comments">GitHub</a> &middot; MIT License
+    </div>
+  </footer>
+
+</body>
+</html>
