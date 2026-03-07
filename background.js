@@ -64,9 +64,17 @@ async function searchReddit(videoId) {
       .filter(p => { if (seen.has(p.id)) return false; seen.add(p.id); return true; })
       .sort((a, b) => b.num_comments - a.num_comments);
 
-    cache.set(videoId, { posts, timestamp: Date.now() });
+    // Only cache if we got results — don't cache empty/failed responses
+    if (posts.length > 0) {
+      cache.set(videoId, { posts, timestamp: Date.now() });
+    }
     return { ok: true, posts };
   } catch (err) {
+    // On error, return cached results if we have any (even if expired)
+    const stale = cache.get(videoId);
+    if (stale?.posts?.length) {
+      return { ok: true, posts: stale.posts, fromCache: true };
+    }
     return { ok: false, error: err.message, posts: [] };
   }
 }

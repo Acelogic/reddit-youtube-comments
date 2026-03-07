@@ -689,6 +689,27 @@ a.ryt-comment-author:hover {
   text-decoration: none;
 }
 
+/* Retry button */
+.ryt-retry-btn {
+  display: inline-block;
+  margin-top: 12px;
+  padding: 6px 18px;
+  border: 1px solid var(--ryt-border);
+  border-radius: 18px;
+  background: var(--ryt-bg-secondary);
+  color: var(--ryt-text);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s;
+}
+
+.ryt-retry-btn:hover {
+  border-color: var(--ryt-accent);
+  background: var(--ryt-hover);
+}
+
 /* Scrollbars */
 #ryt-container ::-webkit-scrollbar { width: 6px; height: 6px; }
 #ryt-container ::-webkit-scrollbar-thumb { background: var(--ryt-border); border-radius: 3px; }

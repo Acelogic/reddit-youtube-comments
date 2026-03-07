@@ -174,7 +174,7 @@
       container.innerHTML = '';
 
       if (!result?.ok || !result.posts.length) {
-        // No Reddit threads — show YouTube comments, keep a minimal header with toggle
+        // No Reddit threads — show YouTube comments, keep a minimal header with retry
         showYouTubeComments();
 
         const header = document.createElement('div');
@@ -190,7 +190,17 @@
         info.textContent = 'No threads found';
         headerLeft.appendChild(title);
         headerLeft.appendChild(info);
+
+        const retryBtn = document.createElement('button');
+        retryBtn.className = 'ryt-retry-btn';
+        retryBtn.textContent = 'Retry';
+        retryBtn.addEventListener('click', () => {
+          currentVideoId = null; // force re-search
+          onNavigate();
+        });
+
         header.appendChild(headerLeft);
+        header.appendChild(retryBtn);
         container.appendChild(header);
         return;
       }
