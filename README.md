@@ -1,8 +1,37 @@
 # Reddit Comments for YouTube
 
-A clean, privacy-respecting browser extension that replaces YouTube comments with Reddit discussions. See what Reddit thinks about the video you're watching.
+[![Firefox Add-on](https://img.shields.io/amo/v/reddit-comments-for-youtube?label=Firefox%20Add-on&color=FF4500)](https://addons.mozilla.org/en-US/firefox/addon/reddit-comments-for-youtube/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-Built as a safe alternative to the Comet extension, which was found to be [exfiltrating user data](#why-this-exists) to a remote server.
+A clean, privacy-respecting browser extension that shows Reddit discussions on YouTube videos. See what Reddit thinks about the video you're watching.
+
+## Install
+
+**[Install for Firefox](https://addons.mozilla.org/en-US/firefox/addon/reddit-comments-for-youtube/)** — from the official Mozilla Add-ons store.
+
+<details>
+<summary>Manual / Development install</summary>
+
+### Firefox (temporary)
+
+1. Open `about:debugging#/runtime/this-firefox`
+2. Click **"Load Temporary Add-on..."**
+3. Select the `manifest.json` file from this directory
+
+### Firefox (development with auto-reload)
+
+```bash
+npx web-ext run --firefox=firefox
+```
+
+### Chrome
+
+1. Open `chrome://extensions`
+2. Enable **"Developer mode"**
+3. Click **"Load unpacked"**
+4. Select this directory
+
+</details>
 
 ## Features
 
@@ -26,27 +55,6 @@ Built as a safe alternative to the Comet extension, which was found to be [exfil
 
 It only communicates with Reddit's public API to search for threads and fetch comments. All requests are read-only and unauthenticated.
 
-## Install
-
-### Firefox (temporary)
-
-1. Open `about:debugging#/runtime/this-firefox`
-2. Click **"Load Temporary Add-on..."**
-3. Select the `manifest.json` file from this directory
-
-### Firefox (development with auto-reload)
-
-```bash
-npx web-ext run --firefox=firefox
-```
-
-### Chrome
-
-1. Open `chrome://extensions`
-2. Enable **"Developer mode"**
-3. Click **"Load unpacked"**
-4. Select this directory
-
 ## How It Works
 
 1. **Content script** runs on YouTube pages and detects video navigation (handles YouTube's SPA architecture)
@@ -57,7 +65,7 @@ npx web-ext run --firefox=firefox
 ### Architecture
 
 ```
-manifest.json      → Extension config (Manifest V2, Firefox + Chrome)
+manifest.json      → Extension config (Manifest V2, Firefox)
 background.js      → Reddit API calls, caching (5min TTL), rate limiting, avatar fetching
 content.js         → YouTube SPA detection, UI injection, comment rendering
 content.css        → Styles with CSS variables for dark/light mode

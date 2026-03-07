@@ -192,22 +192,10 @@ function updateIcon(tabId, postCount) {
     48: `icons/icon-48${postCount > 0 ? '-active' : ''}.png`,
   };
 
-  const setIcon = chrome.browserAction
-    ? chrome.browserAction.setIcon.bind(chrome.browserAction)
-    : chrome.action.setIcon.bind(chrome.action);
-
-  const setBadge = chrome.browserAction
-    ? chrome.browserAction.setBadgeText.bind(chrome.browserAction)
-    : chrome.action.setBadgeText.bind(chrome.action);
-
-  const setBadgeBg = chrome.browserAction
-    ? chrome.browserAction.setBadgeBackgroundColor.bind(chrome.browserAction)
-    : chrome.action.setBadgeBackgroundColor.bind(chrome.action);
-
-  setIcon({ tabId, path: iconPaths });
-  setBadge({ tabId, text: postCount > 0 ? String(postCount) : '' });
+  chrome.browserAction.setIcon({ tabId, path: iconPaths });
+  chrome.browserAction.setBadgeText({ tabId, text: postCount > 0 ? String(postCount) : '' });
   if (postCount > 0) {
-    setBadgeBg({ tabId, color: '#FF4500' });
+    chrome.browserAction.setBadgeBackgroundColor({ tabId, color: '#FF4500' });
   }
 }
 
