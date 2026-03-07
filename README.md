@@ -5,6 +5,15 @@
 
 A clean, privacy-respecting browser extension that shows Reddit discussions on YouTube videos. See what Reddit thinks about the video you're watching.
 
+![Reddit comments embedded on YouTube](screenshots/content-view.png)
+
+<details>
+<summary>Popup view</summary>
+
+![Extension popup showing Reddit threads](screenshots/popup-view.png)
+
+</details>
+
 ## Install
 
 **[Install for Firefox](https://addons.mozilla.org/en-US/firefox/addon/reddit-comments-for-youtube/)** — from the official Mozilla Add-ons store.
