@@ -11,6 +11,15 @@
   let currentSort = 'top';
   let currentPostId = null; // for "load more" children
 
+  const DEFAULT_SETTINGS = {
+    threadLayout: 'cards',
+    showPostThumbnail: true,
+    combineComments: false,
+    parentCommentLimit: 0,
+  };
+
+  let settings = { ...DEFAULT_SETTINGS };
+
   const SORT_OPTIONS = [
     { value: 'confidence', label: 'Best' },
     { value: 'top', label: 'Top' },
@@ -35,6 +44,50 @@
   } catch (e) {
     // Extension context may not be ready yet, use default
   }
+
+  function normalizeSettings(value) {
+    const parentCommentLimit = Number.parseInt(value.parentCommentLimit, 10);
+    return {
+      threadLayout: value.threadLayout === 'list' ? 'list' : 'cards',
+      showPostThumbnail: value.showPostThumbnail !== false,
+      combineComments: value.combineComments === true,
+      parentCommentLimit: Number.isFinite(parentCommentLimit) && parentCommentLimit > 0
+        ? parentCommentLimit
+        : 0,
+    };
+  }
+
+  function loadSettings() {
+    return new Promise(resolve => {
+      try {
+        chrome.storage.local.get(DEFAULT_SETTINGS, stored => {
+          settings = normalizeSettings(stored || DEFAULT_SETTINGS);
+          resolve();
+        });
+      } catch (e) {
+        settings = { ...DEFAULT_SETTINGS };
+        resolve();
+      }
+    });
+  }
+
+  chrome.storage.onChanged.addListener((changes, areaName) => {
+    if (areaName !== 'local') return;
+
+    const settingKeys = Object.keys(DEFAULT_SETTINGS);
+    if (!settingKeys.some(key => changes[key])) return;
+
+    const nextSettings = { ...settings };
+    for (const key of settingKeys) {
+      if (changes[key]) nextSettings[key] = changes[key].newValue;
+    }
+    settings = normalizeSettings(nextSettings);
+
+    if (container && cachedPosts.length) {
+      applySectionMode();
+      renderFullView();
+    }
+  });
 
   // --- YouTube SPA Navigation Detection ---
 
@@ -98,6 +151,14 @@
   function hideYouTubeComments() {
     const yt = document.querySelector('ytd-comments#comments');
     if (yt) yt.style.display = 'none';
+  }
+
+  function applySectionMode() {
+    if (settings.combineComments) {
+      showYouTubeComments();
+    } else {
+      hideYouTubeComments();
+    }
   }
 
   function transitionTo(target) {
@@ -207,7 +268,7 @@
 
       cachedPosts = result.posts;
       activeThreadIdx = 0;
-      hideYouTubeComments();
+      applySectionMode();
       renderFullView();
     });
   }
@@ -242,12 +303,22 @@
     const redditToggle = document.createElement('button');
     redditToggle.className = 'ryt-toggle-btn ryt-toggle-active';
     redditToggle.innerHTML = `<svg viewBox="0 0 24 24" width="18" height="18"><circle cx="12" cy="12" r="10" fill="currentColor"/><circle cx="8.5" cy="10" r="1.5" fill="var(--ryt-bg, #fff)"/><circle cx="15.5" cy="10" r="1.5" fill="var(--ryt-bg, #fff)"/><path d="M8 14.5c0 0 1.5 2 4 2s4-2 4-2" stroke="var(--ryt-bg, #fff)" stroke-width="1.2" fill="none" stroke-linecap="round"/></svg><span>Reddit</span>`;
+    redditToggle.title = settings.combineComments
+      ? 'Scroll to Reddit comments'
+      : 'Show Reddit comments';
 
     const ytToggle = document.createElement('button');
-    ytToggle.className = 'ryt-toggle-btn';
+    ytToggle.className = 'ryt-toggle-btn' + (settings.combineComments ? ' ryt-toggle-active' : '');
     ytToggle.innerHTML = `<svg viewBox="0 0 24 24" width="18" height="18"><path d="M23.5 6.2s-.2-1.6-.9-2.3c-.9-.9-1.8-.9-2.3-1C17 2.6 12 2.6 12 2.6s-5 0-8.3.3c-.5.1-1.4.1-2.3 1-.7.7-.9 2.3-.9 2.3S.2 8.1.2 10v1.8c0 1.9.3 3.8.3 3.8s.2 1.6.9 2.3c.9.9 2 .9 2.5 1 1.8.2 7.6.2 7.6.2s5 0 8.3-.3c.5-.1 1.4-.1 2.3-1 .7-.7.9-2.3.9-2.3s.3-1.9.3-3.8V10c0-1.9-.3-3.8-.3-3.8z" fill="currentColor"/><path d="M9.6 15.6V8.4l6.4 3.6-6.4 3.6z" fill="var(--ryt-bg, #fff)"/></svg><span>YouTube</span>`;
+    ytToggle.title = settings.combineComments
+      ? 'Scroll to YouTube comments'
+      : 'Show YouTube comments';
 
     redditToggle.addEventListener('click', () => {
+      if (settings.combineComments) {
+        container.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        return;
+      }
       if (redditToggle.classList.contains('ryt-toggle-active')) return;
       redditToggle.classList.add('ryt-toggle-active');
       ytToggle.classList.remove('ryt-toggle-active');
@@ -255,6 +326,11 @@
     });
 
     ytToggle.addEventListener('click', () => {
+      if (settings.combineComments) {
+        document.querySelector('ytd-comments#comments')
+          ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        return;
+      }
       if (ytToggle.classList.contains('ryt-toggle-active')) return;
       ytToggle.classList.add('ryt-toggle-active');
       redditToggle.classList.remove('ryt-toggle-active');
@@ -275,26 +351,69 @@
     // Thread cards (horizontal scroll)
     if (cachedPosts.length > 1) {
       const threads = document.createElement('div');
-      threads.className = 'ryt-threads';
+      threads.className = 'ryt-threads ' +
+        (settings.threadLayout === 'list' ? 'ryt-threads-list' : 'ryt-threads-cards');
 
       cachedPosts.forEach((post, idx) => {
         const card = document.createElement('div');
         card.className = 'ryt-thread-card' + (idx === activeThreadIdx ? ' ryt-active' : '');
+        card.tabIndex = 0;
+        card.setAttribute('role', 'button');
+        card.setAttribute('aria-pressed', String(idx === activeThreadIdx));
 
-        card.innerHTML = `
-          <div class="ryt-thread-sub"><a href="https://www.reddit.com/r/${escapeHtml(post.subreddit)}" target="_blank" rel="noopener noreferrer">r/${escapeHtml(post.subreddit)}</a></div>
-          <div class="ryt-thread-title">${escapeHtml(post.title)}</div>
-          <div class="ryt-thread-stats">
-            <span class="ryt-thread-score">&uarr; ${formatScore(post.score)}</span>
-            <span>${post.num_comments} comments</span>
-            <span>&middot;</span>
-            <span>${timeAgo(post.created_utc)}</span>
-          </div>
-        `;
+        let cardHtml = '';
+        if (settings.threadLayout === 'list') {
+          const subredditIconUrl = getSubredditIconUrl(post);
+          const subredditInitial = getSubredditInitial(post.subreddit);
+          cardHtml = `
+            <span class="ryt-thread-list-avatar" style="--ryt-subreddit-hue: ${getSubredditHue(post.subreddit)}">
+              <span class="ryt-thread-list-avatar-fallback" aria-hidden="true">${escapeHtml(subredditInitial)}</span>
+              ${subredditIconUrl ? `<img class="ryt-thread-list-avatar-image" src="${escapeHtml(subredditIconUrl)}" alt="">` : ''}
+            </span>
+            <span class="ryt-thread-list-copy">
+              <span class="ryt-thread-list-meta">
+                <a class="ryt-thread-list-sub" href="https://www.reddit.com/r/${escapeHtml(post.subreddit)}" target="_blank" rel="noopener noreferrer">r/${escapeHtml(post.subreddit)}</a>
+                <span class="ryt-thread-list-dot">&middot;</span>
+                <span class="ryt-thread-list-score">${formatScore(post.score)}&uarr;</span>
+                <span class="ryt-thread-list-dot">&middot;</span>
+                <span class="ryt-thread-list-comments">${post.num_comments} comments</span>
+                <span class="ryt-thread-list-dot">&middot;</span>
+                <span>${timeAgo(post.created_utc)}</span>
+              </span>
+              <span class="ryt-thread-title" title="${escapeHtml(post.title)}">${escapeHtml(post.title)}</span>
+            </span>
+            <span class="ryt-thread-list-chevron" aria-hidden="true">&#8250;</span>
+          `;
+        } else {
+          cardHtml = `
+            <div class="ryt-thread-sub"><a href="https://www.reddit.com/r/${escapeHtml(post.subreddit)}" target="_blank" rel="noopener noreferrer">r/${escapeHtml(post.subreddit)}</a></div>
+            <div class="ryt-thread-title">${escapeHtml(post.title)}</div>
+            <div class="ryt-thread-stats">
+              <span class="ryt-thread-score">&uarr; ${formatScore(post.score)}</span>
+              <span>${post.num_comments} comments</span>
+              <span>&middot;</span>
+              <span>${timeAgo(post.created_utc)}</span>
+            </div>
+          `;
+        }
+        card.innerHTML = cardHtml;
 
-        card.addEventListener('click', () => {
+        const subredditIcon = card.querySelector('.ryt-thread-list-avatar-image');
+        if (subredditIcon) {
+          subredditIcon.addEventListener('error', () => subredditIcon.remove(), { once: true });
+        }
+
+        const selectThread = () => {
+          if (idx === activeThreadIdx) return;
           activeThreadIdx = idx;
           renderFullView();
+        };
+
+        card.addEventListener('click', selectThread);
+        card.addEventListener('keydown', event => {
+          if (event.key !== 'Enter' && event.key !== ' ') return;
+          event.preventDefault();
+          selectThread();
         });
 
         threads.appendChild(card);
@@ -313,7 +432,7 @@
 
     let postImageHtml = '';
     const postImageUrl = getPostImageUrl(post);
-    if (postImageUrl) {
+    if (settings.showPostThumbnail && postImageUrl) {
       postImageHtml = `
         <div class="ryt-post-image">
           <img src="${escapeHtml(postImageUrl)}" loading="lazy" alt="Post image">
@@ -418,6 +537,7 @@
           empty.className = 'ryt-state';
           empty.textContent = 'No comments yet.';
           wrapper.appendChild(empty);
+          appendYouTubeContinuation(wrapper, 0);
           return;
         }
 
@@ -425,20 +545,53 @@
         commentsEl.className = 'ryt-comments';
 
         const opAuthor = post.author;
+        let renderedParentComments = 0;
         for (const item of result.comments) {
           if (item.kind === 't1') {
+            if (settings.parentCommentLimit &&
+                renderedParentComments >= settings.parentCommentLimit) {
+              break;
+            }
             commentsEl.appendChild(renderComment(item.data, opAuthor, true));
-          } else if (item.kind === 'more') {
+            renderedParentComments += 1;
+          } else if (item.kind === 'more' && !settings.parentCommentLimit) {
             commentsEl.appendChild(renderMoreButton(item.data, opAuthor, true));
           }
         }
 
         wrapper.appendChild(commentsEl);
+        appendYouTubeContinuation(wrapper, renderedParentComments);
 
         // Lazy-load avatars for visible comments
         loadAvatarsForComments(commentsEl);
       }
     );
+  }
+
+  function appendYouTubeContinuation(wrapper, renderedParentComments) {
+    if (!settings.combineComments) return;
+
+    const continuation = document.createElement('div');
+    continuation.className = 'ryt-youtube-continuation';
+
+    const label = document.createElement('span');
+    if (settings.parentCommentLimit && renderedParentComments >= settings.parentCommentLimit) {
+      label.textContent = `Showing ${renderedParentComments} Reddit parent comments`;
+    } else {
+      label.textContent = 'End of Reddit comments';
+    }
+
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.textContent = 'Continue with YouTube comments';
+    button.addEventListener('click', () => {
+      document.querySelector('ytd-comments#comments')
+        ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+
+    continuation.appendChild(label);
+    continuation.appendChild(button);
+    wrapper.appendChild(continuation);
   }
 
   // --- Comment rendering ---
@@ -456,6 +609,7 @@
     }
 
     const isOp = comment.author === opAuthor;
+    const authorName = comment.author || '[deleted]';
 
     // Header row with avatar
     const header = document.createElement('div');
@@ -463,11 +617,28 @@
 
     const avatarEl = createAvatar(comment.author);
 
+    const collapseButton = document.createElement('button');
+    collapseButton.type = 'button';
+    collapseButton.className = 'ryt-collapse-button';
+    collapseButton.setAttribute('aria-expanded', 'true');
+
     const collapseIcon = document.createElement('span');
     collapseIcon.className = 'ryt-collapse-icon';
-    collapseIcon.innerHTML = '&#9660;';
+    collapseIcon.textContent = '\u25BC';
+    collapseIcon.setAttribute('aria-hidden', 'true');
 
-    header.appendChild(collapseIcon);
+    collapseButton.appendChild(collapseIcon);
+    header.appendChild(collapseButton);
+
+    let railButton = null;
+    if (!isRoot) {
+      railButton = document.createElement('button');
+      railButton.type = 'button';
+      railButton.className = 'ryt-thread-rail';
+      railButton.setAttribute('aria-expanded', 'true');
+      el.appendChild(railButton);
+    }
+
     header.appendChild(avatarEl);
 
     // Vote arrows
@@ -477,7 +648,6 @@
     header.appendChild(votes);
 
     // Author
-    const authorName = comment.author || '[deleted]';
     if (authorName !== '[deleted]' && authorName !== '[removed]') {
       const authorLink = document.createElement('a');
       authorLink.className = 'ryt-comment-author';
@@ -538,9 +708,32 @@
       header.appendChild(awardsEl);
     }
 
-    header.addEventListener('click', () => {
-      el.classList.toggle('ryt-collapsed');
-    });
+    const setCollapsed = collapsed => {
+      el.classList.toggle('ryt-collapsed', collapsed);
+      const expanded = String(!collapsed);
+      const action = collapsed ? 'Expand' : 'Collapse';
+      const label = `${action} comment thread by ${authorName}`;
+
+      collapseButton.setAttribute('aria-expanded', expanded);
+      collapseButton.setAttribute('aria-label', label);
+      collapseButton.title = label;
+
+      if (railButton) {
+        railButton.setAttribute('aria-expanded', expanded);
+        railButton.setAttribute('aria-label', label);
+        railButton.title = label;
+      }
+    };
+
+    const toggleCollapsed = event => {
+      event?.stopPropagation();
+      setCollapsed(!el.classList.contains('ryt-collapsed'));
+    };
+
+    setCollapsed(false);
+    collapseButton.addEventListener('click', toggleCollapsed);
+    railButton?.addEventListener('click', toggleCollapsed);
+    header.addEventListener('click', toggleCollapsed);
 
     el.appendChild(header);
 
@@ -756,6 +949,26 @@
 
   // --- Helpers ---
 
+  function getSubredditIconUrl(post) {
+    const details = post?.sr_detail || {};
+    const iconUrl = details.community_icon || details.icon_img || '';
+    if (typeof iconUrl !== 'string' || !/^https?:\/\//i.test(iconUrl)) return '';
+    return iconUrl.replace(/&amp;/g, '&');
+  }
+
+  function getSubredditInitial(subreddit) {
+    const name = String(subreddit || '').trim();
+    return (name[0] || 'r').toUpperCase();
+  }
+
+  function getSubredditHue(subreddit) {
+    let hash = 0;
+    for (const character of String(subreddit || 'reddit')) {
+      hash = ((hash << 5) - hash + character.charCodeAt(0)) | 0;
+    }
+    return Math.abs(hash) % 360;
+  }
+
   function escapeHtml(str) {
     const div = document.createElement('div');
     div.textContent = str || '';
@@ -763,5 +976,5 @@
   }
 
   // Initial run
-  onNavigate();
+  loadSettings().then(onNavigate);
 })();

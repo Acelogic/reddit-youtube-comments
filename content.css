@@ -460,9 +460,46 @@ html[dark] #ryt-container {
 }
 
 .ryt-comment-nested {
+  position: relative;
   margin: 18px 0 0 12px;
   padding-left: 12px;
-  border-left: 2px solid var(--ryt-thread-line);
+}
+
+.ryt-thread-rail {
+  position: absolute;
+  z-index: 1;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 12px;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  transform: translateX(-50%);
+}
+
+.ryt-thread-rail::before {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 2px;
+  background: var(--ryt-thread-line);
+  border-radius: 2px;
+  content: '';
+  transform: translateX(-50%);
+  transition: background 0.15s, width 0.15s;
+}
+
+.ryt-thread-rail:hover::before,
+.ryt-thread-rail:focus-visible::before {
+  width: 3px;
+  background: var(--ryt-accent);
+}
+
+.ryt-thread-rail:focus-visible {
+  outline: 0;
 }
 
 .ryt-comment-header {
@@ -654,15 +691,36 @@ a.ryt-comment-author:hover {
   display: none;
 }
 
-.ryt-collapse-icon {
-  display: inline-block;
-  transition: transform 0.15s;
-  font-size: 8px;
+.ryt-collapse-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  margin: -3px 0 -3px -3px;
+  padding: 0;
   color: var(--ryt-text-secondary);
-  margin-right: 2px;
+  background: transparent;
+  border: 0;
+  border-radius: 3px;
+  cursor: pointer;
 }
 
-.ryt-comment.ryt-collapsed .ryt-collapse-icon {
+.ryt-collapse-button:hover,
+.ryt-collapse-button:focus-visible {
+  color: var(--ryt-text);
+  background: var(--ryt-hover);
+  outline: 0;
+}
+
+.ryt-collapse-icon {
+  display: block;
+  transition: transform 0.15s;
+  font-size: 8px;
+  line-height: 1;
+}
+
+.ryt-comment.ryt-collapsed > .ryt-comment-header .ryt-collapse-icon {
   transform: rotate(-90deg);
 }
 
@@ -713,3 +771,201 @@ a.ryt-comment-author:hover {
 /* Scrollbars */
 #ryt-container ::-webkit-scrollbar { width: 6px; height: 6px; }
 #ryt-container ::-webkit-scrollbar-thumb { background: var(--ryt-border); border-radius: 3px; }
+
+/* Dense vertical thread index */
+.ryt-threads-list {
+  display: block;
+  max-height: 360px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  margin: 8px 0 12px;
+  padding: 4px;
+  background: var(--ryt-bg-secondary);
+  border: 1px solid var(--ryt-border);
+  border-radius: 10px;
+  scrollbar-gutter: stable;
+}
+
+.ryt-threads-list .ryt-thread-card {
+  position: relative;
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr);
+  align-items: center;
+  column-gap: 10px;
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 54px;
+  min-width: 0;
+  max-width: none;
+  padding: 8px 34px 8px 8px;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid rgba(128, 128, 128, 0.14);
+  border-radius: 6px;
+  outline: 0;
+  transition: background-color 120ms ease, box-shadow 120ms ease;
+}
+
+.ryt-threads-list .ryt-thread-card:last-child {
+  border-bottom-color: transparent;
+}
+
+.ryt-threads-list .ryt-thread-card:hover,
+.ryt-threads-list .ryt-thread-card:focus-visible {
+  background: rgba(128, 128, 128, 0.12);
+}
+
+.ryt-threads-list .ryt-thread-card.ryt-active {
+  background: rgba(255, 69, 0, 0.1);
+  box-shadow: inset 3px 0 0 var(--ryt-upvote);
+}
+
+.ryt-threads-list .ryt-thread-card:focus-visible {
+  outline: 1px solid var(--ryt-accent);
+  outline-offset: -1px;
+}
+
+.ryt-thread-list-avatar {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  overflow: hidden;
+  color: #fff;
+  background: hsl(var(--ryt-subreddit-hue), 46%, 38%);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 50%;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.24);
+}
+
+.ryt-thread-list-avatar-fallback {
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.ryt-thread-list-avatar-image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  background: var(--ryt-bg-secondary);
+}
+
+.ryt-thread-list-copy {
+  display: block;
+  min-width: 0;
+}
+
+.ryt-thread-list-meta {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--ryt-text-secondary);
+  font-size: 11.5px;
+  line-height: 15px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.ryt-thread-list-sub {
+  color: var(--ryt-text);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.ryt-thread-list-sub:hover {
+  text-decoration: underline;
+}
+
+.ryt-thread-list-score {
+  color: var(--ryt-upvote);
+  font-weight: 500;
+}
+
+.ryt-thread-list-comments {
+  color: var(--ryt-text-secondary);
+}
+
+.ryt-thread-list-dot {
+  opacity: 0.65;
+}
+
+.ryt-threads-list .ryt-thread-title {
+  margin: 2px 0 0;
+  display: block;
+  overflow: hidden;
+  color: var(--ryt-text);
+  font-size: 13.5px;
+  font-weight: 500;
+  line-height: 19px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  -webkit-line-clamp: unset;
+}
+
+.ryt-thread-list-chevron {
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  color: var(--ryt-text-secondary);
+  font-size: 22px;
+  line-height: 1;
+  opacity: 0.45;
+  transform: translateY(-50%);
+  transition: opacity 120ms ease, transform 120ms ease;
+}
+
+.ryt-threads-list .ryt-thread-card:hover .ryt-thread-list-chevron,
+.ryt-threads-list .ryt-thread-card:focus-visible .ryt-thread-list-chevron,
+.ryt-threads-list .ryt-thread-card.ryt-active .ryt-thread-list-chevron {
+  opacity: 1;
+  transform: translate(2px, -50%);
+}
+
+/* Boundary between the combined Reddit and native YouTube sections */
+.ryt-youtube-continuation {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 24px 0 8px;
+  padding: 16px;
+  color: var(--ryt-text-secondary);
+  background: var(--ryt-bg-secondary);
+  border: 1px solid var(--ryt-border);
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+.ryt-youtube-continuation button {
+  flex-shrink: 0;
+  padding: 8px 14px;
+  color: #fff;
+  background: var(--ryt-accent);
+  border: 0;
+  border-radius: 18px;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.ryt-youtube-continuation button:hover {
+  filter: brightness(0.92);
+}
+
+@media (max-width: 700px) {
+  .ryt-threads-list {
+    max-height: 300px;
+  }
+
+  .ryt-youtube-continuation {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

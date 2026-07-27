@@ -8,7 +8,53 @@
   <div id="header">
     <span class="logo">R</span>
     <span class="title">Reddit Threads</span>
+    <button id="settings-toggle" type="button" aria-expanded="false" aria-controls="settings-panel">
+      Settings
+    </button>
   </div>
+  <section id="settings-panel" class="hidden" aria-label="Display settings">
+    <div class="setting-row">
+      <label for="thread-layout">
+        <span class="setting-name">Thread layout</span>
+        <span class="setting-help">Choose cards or a compact vertical list.</span>
+      </label>
+      <select id="thread-layout">
+        <option value="cards">Cards</option>
+        <option value="list">List</option>
+      </select>
+    </div>
+
+    <label class="setting-row setting-toggle" for="show-post-thumbnail">
+      <span>
+        <span class="setting-name">Large thread image</span>
+        <span class="setting-help">Show the active Reddit post's thumbnail.</span>
+      </span>
+      <input id="show-post-thumbnail" type="checkbox" checked>
+    </label>
+
+    <label class="setting-row setting-toggle" for="combine-comments">
+      <span>
+        <span class="setting-name">Combine comment sections</span>
+        <span class="setting-help">Continue into YouTube after Reddit comments.</span>
+      </span>
+      <input id="combine-comments" type="checkbox">
+    </label>
+
+    <div class="setting-row">
+      <label for="parent-comment-limit">
+        <span class="setting-name">Reddit parent comments</span>
+        <span class="setting-help">Limit top-level comments before YouTube.</span>
+      </label>
+      <select id="parent-comment-limit">
+        <option value="0">All</option>
+        <option value="5">5</option>
+        <option value="10">10</option>
+        <option value="20">20</option>
+        <option value="50">50</option>
+      </select>
+    </div>
+    <div id="settings-status" role="status" aria-live="polite"></div>
+  </section>
   <div id="content">
     <div id="loading" class="state">Searching Reddit...</div>
     <div id="empty" class="state hidden">No Reddit discussions found for this video.</div>

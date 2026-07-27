@@ -42,12 +42,13 @@ npx web-ext run --firefox=firefox
 ## Features
 
 - **Reddit comments on YouTube** — Automatically finds and displays Reddit threads for the video you're watching
-- **Smooth toggle** — Switch between Reddit and YouTube comments with a pill-shaped toggle and slide animations
-- **Multiple threads** — Horizontal scrolling cards when a video has been posted to multiple subreddits
+- **Flexible comment flow** — Switch between Reddit and YouTube, or combine both into one continuous scroll
+- **Multiple thread layouts** — Choose horizontal cards or a compact vertical list
+- **Parent comment limits** — Show All, 5, 10, 20, or 50 top-level Reddit comments before YouTube
 - **Nested comment trees** — Full threaded comments with collapse/expand, just like Reddit
 - **Profile avatars** — Letter avatars load instantly, real Reddit profile pictures lazy-load in the background
 - **Inline image previews** — Image links (imgur, i.redd.it, etc.) auto-expand inline
-- **Post images** — If the Reddit post is an image post, it's displayed above the comments
+- **Optional post images** — Show or hide the active Reddit post's large thumbnail
 - **"Load more" comments** — Expand truncated comment threads
 - **Sort comments** — Best, Top, New, Old, Controversial — preference is remembered
 - **Awards & flair** — Gilded/awarded comments and user/post flairs are displayed

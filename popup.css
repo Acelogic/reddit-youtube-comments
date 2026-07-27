@@ -23,6 +23,7 @@ body {
   background: #1a1a1b;
   position: sticky;
   top: 0;
+  z-index: 2;
 }
 
 .logo {
@@ -42,6 +43,93 @@ body {
   font-weight: 600;
   font-size: 15px;
   color: #d7dadc;
+  flex: 1;
+}
+
+#settings-toggle {
+  padding: 6px 10px;
+  border: 1px solid #4a4a4c;
+  border-radius: 16px;
+  color: #d7dadc;
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
+}
+
+#settings-toggle:hover,
+#settings-toggle.active {
+  color: #fff;
+  border-color: #FF4500;
+  background: #272729;
+}
+
+#settings-panel {
+  padding: 4px 16px;
+  border-bottom: 1px solid #343536;
+  background: #202022;
+}
+
+.setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 11px 0;
+  border-bottom: 1px solid #343536;
+}
+
+.setting-row:last-of-type {
+  border-bottom: 0;
+}
+
+.setting-row label,
+.setting-row > span {
+  min-width: 0;
+}
+
+.setting-name,
+.setting-help {
+  display: block;
+}
+
+.setting-name {
+  margin-bottom: 2px;
+  color: #d7dadc;
+  font-weight: 600;
+}
+
+.setting-help {
+  color: #818384;
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.setting-row select {
+  flex-shrink: 0;
+  min-width: 78px;
+  padding: 5px 7px;
+  color: #d7dadc;
+  background: #1a1a1b;
+  border: 1px solid #4a4a4c;
+  border-radius: 5px;
+}
+
+.setting-toggle {
+  cursor: pointer;
+}
+
+.setting-toggle input {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  accent-color: #FF4500;
+}
+
+#settings-status {
+  min-height: 26px;
+  padding: 6px 0 8px;
+  color: #46d160;
+  font-size: 11px;
 }
 
 #content {
