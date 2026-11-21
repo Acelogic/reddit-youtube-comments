@@ -133,6 +133,18 @@ function postReferencesVideo(post, videoId) {
   return urls.some(url => url && youtubeIdsInUrl(url).includes(videoId));
 }
 
+// The content script decodes `body_html` once before sanitizing it, because
+// Reddit's JSON API returns it entity-escaped. Markup read from a page must be
+// escaped the same way, or text a commenter typed as "&lt;img&gt;" would come
+// out of that decode as a real element.
+function escapeMarkup(html) {
+  return String(html)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
 function parseOldRedditSearch(html) {
   const doc = new DOMParser().parseFromString(html, 'text/html');
   const posts = [];
@@ -201,7 +213,7 @@ function parseOldRedditComments(html) {
           name: fullname,
           author: author || '[deleted]',
           body: isDeleted ? '[deleted]' : bodyNode.textContent.trim(),
-          body_html: isDeleted ? '' : bodyNode.outerHTML,
+          body_html: isDeleted ? '' : escapeMarkup(bodyNode.outerHTML),
           score: parseNumber(scoreNode?.getAttribute('title') || scoreNode?.textContent),
           created_utc: time?.dateTime ? Date.parse(time.dateTime) / 1000 : 0,
           permalink: element.dataset.permalink || '',
@@ -330,7 +342,7 @@ function parsePublicComments(html) {
           name: fullname,
           author: element.getAttribute('author') || '[deleted]',
           body: bodyNode ? bodyNode.textContent.trim() : '[deleted]',
-          body_html: bodyNode ? bodyNode.innerHTML : '',
+          body_html: bodyNode ? escapeMarkup(bodyNode.innerHTML) : '',
           score: parseNumber(element.getAttribute('score')),
           created_utc: created ? Date.parse(created) / 1000 : 0,
           permalink: element.getAttribute('permalink') || '',
@@ -457,12 +469,20 @@ async function fetchCommentsOldReddit(permalink, sort) {
   return parseOldRedditComments(await fetchOldRedditPage(pageUrl.href));
 }
 
-async function searchReddit(videoId) {
-  const cached = cache.get(videoId);
-  if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
-    return { ok: true, posts: cached.posts, fromCache: true };
+// `signedOut` in the result tells the UI that Reddit asked for a login, so it
+// can say so; `force` (the Retry / "I've signed in" buttons) starts clean.
+async function searchReddit(videoId, force = false) {
+  if (force) {
+    cache.delete(videoId);
+    oldRedditLoginUntil = 0;
   }
 
+  const cached = cache.get(videoId);
+  if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+    return { ok: true, posts: cached.posts, signedOut: cached.signedOut, fromCache: true };
+  }
+
+  let signedOut = false;
   try {
     let allPosts = null;
     if (!redditJsonApiBlocked) {
@@ -478,6 +498,7 @@ async function searchReddit(videoId) {
         allPosts = await searchRedditHtml(videoId);
       } catch (oldRedditError) {
         // Signed out (or old Reddit is down): use the public search page.
+        signedOut = /login required/i.test(oldRedditError.message);
         try {
           allPosts = await searchRedditPublic(videoId);
         } catch (e) {
@@ -493,16 +514,16 @@ async function searchReddit(videoId) {
 
     // Only cache if we got results — don't cache empty/failed responses
     if (posts.length > 0) {
-      cache.set(videoId, { posts, timestamp: Date.now() });
+      cache.set(videoId, { posts, signedOut, timestamp: Date.now() });
     }
-    return { ok: true, posts };
+    return { ok: true, posts, signedOut };
   } catch (err) {
     // On error, return cached results if we have any (even if expired)
     const stale = cache.get(videoId);
     if (stale?.posts?.length) {
-      return { ok: true, posts: stale.posts, fromCache: true };
+      return { ok: true, posts: stale.posts, signedOut: stale.signedOut, fromCache: true };
     }
-    return { ok: false, error: err.message, posts: [] };
+    return { ok: false, error: err.message, signedOut, posts: [] };
   }
 }
 
@@ -647,7 +668,7 @@ function updateIcon(tabId, postCount) {
 
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg.type === 'SEARCH_VIDEO') {
-    searchReddit(msg.videoId).then(result => {
+    searchReddit(msg.videoId, msg.force === true).then(result => {
       const tabId = sender.tab?.id || msg.tabId;
       if (tabId) updateIcon(tabId, result.posts.length);
       sendResponse(result);
@@ -689,8 +710,8 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg.type === 'GET_VIDEO_ID') {
     chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
       if (tabs[0]?.url) {
-        const url = new URL(tabs[0].url);
-        const videoId = url.searchParams.get('v');
+        // Handles /watch?v=, /shorts/, /live/, /embed/ and youtu.be links.
+        const videoId = youtubeIdsInUrl(tabs[0].url)[0] || null;
         sendResponse({ videoId, tabId: tabs[0].id });
       } else {
         sendResponse({ videoId: null });

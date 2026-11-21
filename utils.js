@@ -42,39 +42,81 @@ function formatScore(n) {
   return String(n);
 }
 
+// --- Comment HTML sanitizer ---
+// Comment bodies are rebuilt from an allowlist: only plain formatting elements
+// survive, and the only attributes kept are a safe link or image address.
+
+const XHTML_NAMESPACE = 'http://www.w3.org/1999/xhtml';
+
+const SAFE_TAGS = new Set([
+  'a', 'p', 'br', 'hr', 'em', 'strong', 'b', 'i', 'u', 's', 'del', 'strike',
+  'sup', 'sub', 'code', 'pre', 'blockquote', 'ul', 'ol', 'li',
+  'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+  'table', 'thead', 'tbody', 'tr', 'th', 'td', 'span', 'div', 'img',
+]);
+
+// Removed together with everything inside them. Any other unknown element is
+// unwrapped, so its text is kept.
+const DROPPED_TAGS = new Set([
+  'script', 'style', 'iframe', 'frame', 'frameset', 'object', 'embed', 'applet',
+  'form', 'input', 'button', 'select', 'option', 'textarea', 'link', 'meta',
+  'base', 'head', 'title', 'template', 'noscript', 'svg', 'math', 'video',
+  'audio', 'source', 'track', 'canvas',
+]);
+
+// http(s) only; site-relative Reddit links become absolute.
+function safeUrl(value, httpsOnly) {
+  const url = String(value || '').trim();
+  if (url.startsWith('//')) return `https:${url}`;
+  if (url.startsWith('/')) return `https://www.reddit.com${url}`;
+  return (httpsOnly ? /^https:\/\//i : /^https?:\/\//i).test(url) ? url : null;
+}
+
+function sanitizeNode(node) {
+  for (const child of [...node.childNodes]) {
+    if (child.nodeType === Node.TEXT_NODE) continue;
+    if (child.nodeType !== Node.ELEMENT_NODE) { child.remove(); continue; }
+
+    const tag = child.localName;
+    if (child.namespaceURI !== XHTML_NAMESPACE || DROPPED_TAGS.has(tag)) {
+      child.remove();
+      continue;
+    }
+
+    sanitizeNode(child);
+
+    if (!SAFE_TAGS.has(tag)) {
+      child.replaceWith(...child.childNodes);
+      continue;
+    }
+
+    const href = tag === 'a' ? safeUrl(child.getAttribute('href'), false) : null;
+    const src = tag === 'img' ? safeUrl(child.getAttribute('src'), true) : null;
+    const alt = tag === 'img' ? child.getAttribute('alt') : null;
+    for (const attr of [...child.attributes]) child.removeAttribute(attr.name);
+
+    if (tag === 'a') {
+      if (href) child.setAttribute('href', href);
+      child.setAttribute('target', '_blank');
+      child.setAttribute('rel', 'noopener noreferrer');
+    } else if (tag === 'img') {
+      if (!src) { child.remove(); continue; }
+      child.setAttribute('src', src);
+      child.setAttribute('alt', alt || '');
+      child.setAttribute('loading', 'lazy');
+    }
+  }
+}
+
+// `html` is entity-escaped markup, as Reddit's JSON API returns `body_html`.
+// It is decoded exactly once here; callers must not pass raw markup.
 function sanitizeHtml(html) {
   if (!html) return '';
   const txt = document.createElement('textarea');
   txt.innerHTML = html;
-  const decoded = txt.value;
 
-  const parser = new DOMParser();
-  const doc = parser.parseFromString(decoded, 'text/html');
-
-  doc.querySelectorAll('script, iframe, object, embed, form, style, link, meta').forEach(el => el.remove());
-
-  doc.body.querySelectorAll('*').forEach(el => {
-    for (const attr of [...el.attributes]) {
-      if (attr.name.startsWith('on') || attr.name === 'srcdoc') {
-        el.removeAttribute(attr.name);
-      }
-    }
-    if (el.hasAttribute('href')) {
-      const href = el.getAttribute('href');
-      if (href && !/^https?:\/\//i.test(href) && !href.startsWith('/')) {
-        el.removeAttribute('href');
-      }
-      // Convert relative Reddit links to absolute
-      if (href && href.startsWith('/')) {
-        el.setAttribute('href', 'https://www.reddit.com' + href);
-      }
-    }
-    if (el.tagName === 'A') {
-      el.setAttribute('target', '_blank');
-      el.setAttribute('rel', 'noopener noreferrer');
-    }
-  });
-
+  const doc = new DOMParser().parseFromString(txt.value, 'text/html');
+  sanitizeNode(doc.body);
   return doc.body.innerHTML;
 }
 

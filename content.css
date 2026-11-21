@@ -768,6 +768,42 @@ a.ryt-comment-author:hover {
   background: var(--ryt-hover);
 }
 
+/* Signed-out notice */
+.ryt-signin-notice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin: 8px 0;
+  padding: 10px 12px;
+  border: 1px solid var(--ryt-border);
+  border-left: 3px solid var(--ryt-accent);
+  border-radius: 8px;
+  background: var(--ryt-bg-secondary);
+  color: var(--ryt-text);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.ryt-signin-text {
+  flex: 1 1 260px;
+}
+
+.ryt-signin-link {
+  color: var(--ryt-link);
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.ryt-signin-link:hover {
+  text-decoration: underline;
+}
+
+.ryt-signin-notice .ryt-retry-btn {
+  margin-top: 0;
+}
+
 /* Scrollbars */
 #ryt-container ::-webkit-scrollbar { width: 6px; height: 6px; }
 #ryt-container ::-webkit-scrollbar-thumb { background: var(--ryt-border); border-radius: 3px; }

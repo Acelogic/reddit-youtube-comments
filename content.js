@@ -10,6 +10,8 @@
   let cachedPosts = [];
   let currentSort = 'top';
   let currentPostId = null; // for "load more" children
+  let signedOut = false; // Reddit asked for a login, so results are limited
+  let forceNextSearch = false; // Retry / "I've signed in": skip caches once
 
   const DEFAULT_SETTINGS = {
     threadLayout: 'cards',
@@ -233,11 +235,14 @@
     ytComments.parentNode.insertBefore(container, ytComments);
 
     const panel = container;
-    chrome.runtime.sendMessage({ type: 'SEARCH_VIDEO', videoId }, result => {
+    const force = forceNextSearch;
+    forceNextSearch = false;
+    chrome.runtime.sendMessage({ type: 'SEARCH_VIDEO', videoId, force }, result => {
       // Drop a late answer for a video the user has already left, so its
       // threads are never drawn into the next video's panel.
       if (videoId !== currentVideoId || panel !== container) return;
       container.innerHTML = '';
+      signedOut = result?.signedOut === true;
 
       if (!result?.ok || !result.posts.length) {
         // No Reddit threads — show YouTube comments, keep a minimal header with retry
@@ -253,8 +258,8 @@
         title.textContent = 'Reddit Comments';
         const info = document.createElement('span');
         info.className = 'ryt-header-count';
-        info.textContent = /login required/i.test(result?.error || '')
-          ? 'Log in to Reddit to load threads'
+        info.textContent = !result?.ok && signedOut
+          ? 'Sign in to Reddit to load threads'
           : 'No threads found';
         headerLeft.appendChild(title);
         headerLeft.appendChild(info);
@@ -262,14 +267,12 @@
         const retryBtn = document.createElement('button');
         retryBtn.className = 'ryt-retry-btn';
         retryBtn.textContent = 'Retry';
-        retryBtn.addEventListener('click', () => {
-          currentVideoId = null; // force re-search
-          onNavigate();
-        });
+        retryBtn.addEventListener('click', retrySearch);
 
         header.appendChild(headerLeft);
         header.appendChild(retryBtn);
         container.appendChild(header);
+        if (signedOut) container.appendChild(buildSignInNotice());
         return;
       }
 
@@ -278,6 +281,42 @@
       applySectionMode();
       renderFullView();
     });
+  }
+
+  // Search again for the current video, bypassing caches.
+  function retrySearch() {
+    forceNextSearch = true;
+    currentVideoId = null;
+    onNavigate();
+  }
+
+  // Shown whenever Reddit asked for a login: signed-out results are limited.
+  function buildSignInNotice() {
+    const notice = document.createElement('div');
+    notice.className = 'ryt-signin-notice';
+    notice.setAttribute('role', 'status');
+
+    const text = document.createElement('span');
+    text.className = 'ryt-signin-text';
+    text.textContent = 'You’re signed out of Reddit, so only a few threads and comments can be shown.';
+
+    const link = document.createElement('a');
+    link.className = 'ryt-signin-link';
+    link.href = 'https://www.reddit.com/login/';
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    link.textContent = 'Sign in to Reddit';
+
+    const reload = document.createElement('button');
+    reload.type = 'button';
+    reload.className = 'ryt-retry-btn';
+    reload.textContent = 'I’ve signed in';
+    reload.addEventListener('click', retrySearch);
+
+    notice.appendChild(text);
+    notice.appendChild(link);
+    notice.appendChild(reload);
+    return notice;
   }
 
   // --- Full Comet-style view ---
@@ -350,6 +389,7 @@
     header.appendChild(headerLeft);
     header.appendChild(toggleGroup);
     container.appendChild(header);
+    if (signedOut) container.appendChild(buildSignInNotice());
 
     // Content wrapper (for transition animations)
     const contentWrapper = document.createElement('div');
@@ -457,7 +497,7 @@
 
     postHeader.innerHTML = `
       <div class="ryt-post-title">
-        <a href="https://www.reddit.com${post.permalink}" target="_blank" rel="noopener noreferrer">${escapeHtml(post.title)}</a>
+        <a href="https://www.reddit.com${escapeHtml(post.permalink)}" target="_blank" rel="noopener noreferrer">${escapeHtml(post.title)}</a>
         ${flairHtml}
       </div>
       <div class="ryt-post-meta">
@@ -985,7 +1025,8 @@
   function escapeHtml(str) {
     const div = document.createElement('div');
     div.textContent = str || '';
-    return div.innerHTML;
+    // Quotes too: this is also used inside attribute values.
+    return div.innerHTML.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   }
 
   // Initial run

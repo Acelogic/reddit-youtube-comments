@@ -146,6 +146,27 @@ body {
   display: none;
 }
 
+.notice {
+  margin: 8px 12px 0;
+  padding: 10px 12px;
+  border: 1px solid #343536;
+  border-left: 3px solid #ff4500;
+  border-radius: 6px;
+  background: #272729;
+  color: #d7dadc;
+  line-height: 1.4;
+}
+
+.notice a {
+  color: #4fbcff;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.notice a:hover {
+  text-decoration: underline;
+}
+
 .thread {
   display: block;
   padding: 10px 16px;

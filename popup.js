@@ -5,6 +5,7 @@ const $empty = document.getElementById('empty');
 const $notVideo = document.getElementById('not-video');
 const $error = document.getElementById('error');
 const $threads = document.getElementById('threads');
+const $signinNotice = document.getElementById('signin-notice');
 const $settingsToggle = document.getElementById('settings-toggle');
 const $settingsPanel = document.getElementById('settings-panel');
 const $threadLayout = document.getElementById('thread-layout');
@@ -122,8 +123,10 @@ chrome.runtime.sendMessage({ type: 'GET_VIDEO_ID' }, response => {
   }
 
   chrome.runtime.sendMessage({ type: 'SEARCH_VIDEO', videoId: response.videoId }, result => {
+    // Reddit asked for a login: say so instead of a generic failure.
+    $signinNotice.classList.toggle('hidden', result?.signedOut !== true);
     if (!result?.ok) {
-      showState($error);
+      showState(result?.signedOut ? null : $error);
       return;
     }
     renderThreads(result.posts);
