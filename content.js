@@ -101,7 +101,8 @@
     if (!videoId) { removePanel(); return; }
 
     waitForComments().then(() => {
-      injectPanel(videoId);
+      // The user may have moved on to another video while we waited.
+      if (videoId === currentVideoId) injectPanel(videoId);
     });
   }
 
@@ -231,7 +232,11 @@
 
     ytComments.parentNode.insertBefore(container, ytComments);
 
+    const panel = container;
     chrome.runtime.sendMessage({ type: 'SEARCH_VIDEO', videoId }, result => {
+      // Drop a late answer for a video the user has already left, so its
+      // threads are never drawn into the next video's panel.
+      if (videoId !== currentVideoId || panel !== container) return;
       container.innerHTML = '';
 
       if (!result?.ok || !result.posts.length) {
@@ -248,7 +253,9 @@
         title.textContent = 'Reddit Comments';
         const info = document.createElement('span');
         info.className = 'ryt-header-count';
-        info.textContent = 'No threads found';
+        info.textContent = /login required/i.test(result?.error || '')
+          ? 'Log in to Reddit to load threads'
+          : 'No threads found';
         headerLeft.appendChild(title);
         headerLeft.appendChild(info);
 
@@ -791,8 +798,11 @@
   function renderMoreButton(moreData, opAuthor, isRoot) {
     const btn = document.createElement('button');
     btn.className = 'ryt-load-more';
-    const count = moreData.count || moreData.children?.length || 0;
-    btn.textContent = `Load ${count} more comment${count !== 1 ? 's' : ''}`;
+    // Continuations from a public thread page (cursor) do not always say how many.
+    const count = moreData.count || (moreData.cursor ? 0 : moreData.children?.length) || 0;
+    btn.textContent = count
+      ? `Load ${count} more comment${count !== 1 ? 's' : ''}`
+      : (isRoot ? 'Load more comments' : 'Load more replies');
 
     btn.addEventListener('click', () => {
       if (!moreData.children?.length) {
@@ -809,6 +819,7 @@
           linkId: currentPostId,
           children: moreData.children,
           sort: currentSort,
+          more: moreData.cursor ? { src: moreData.src, cursor: moreData.cursor } : null,
         },
         result => {
           if (!result?.ok || !result.comments?.length) {
@@ -821,6 +832,8 @@
           for (const item of result.comments) {
             if (item.kind === 't1') {
               frag.appendChild(renderComment(item.data, opAuthor, isRoot));
+            } else if (item.kind === 'more' && item.data.cursor) {
+              frag.appendChild(renderMoreButton(item.data, opAuthor, isRoot));
             }
           }
 
