@@ -54,18 +54,23 @@ npx web-ext run --firefox=firefox
 - **Awards & flair** — Gilded/awarded comments and user/post flairs are displayed
 - **Dark mode** — Automatically matches YouTube's dark/light theme
 - **Hyperlinked everything** — Subreddits, usernames, post titles, and permalinks all link to Reddit
-- **Works on all YouTube URLs** — `/watch?v=`, `/live/`, `/shorts/`, `/embed/`, and `youtu.be` links
+- **Watch and live pages** — The in-page panel appears on `/watch?v=` and `/live/` pages; on Shorts and `/embed/` links, threads are listed in the toolbar popup
+- **Works signed out** — Without a Reddit login you still get the top threads and comments, with a notice linking to Reddit's sign-in for the full set
 
 ## Privacy
 
-**This extension collects zero data.** No analytics, no tracking, no external server calls, no credential access.
+**This extension collects zero data.** No analytics, no tracking, and no servers other than Reddit.
 
-It only communicates with Reddit's public API to search for threads and fetch comments. All requests are read-only and unauthenticated.
+It talks only to reddit.com, and only to read: it searches for threads and fetches comments. It never votes, posts, or changes anything.
+
+Requests are sent with your browser's existing Reddit cookies, so when you are signed in, Reddit sees them as coming from your account. The extension never reads, stores, or forwards those cookies or any token.
+
+Signed out, it falls back to Reddit's public pages, which show fewer threads and comments per video. The panel and popup say so, with a link to sign in.
 
 ## How It Works
 
 1. **Content script** runs on YouTube pages and detects video navigation (handles YouTube's SPA architecture)
-2. **Background script** searches Reddit's public API for posts matching the video URL (both `youtube.com/watch?v=` and `youtu.be/` formats)
+2. **Background script** searches Reddit for posts that link to the video (`url:<video id>`) and keeps only posts whose link points at that exact video. It tries Reddit's JSON API, then old Reddit pages, then Reddit's public pages when you are signed out
 3. If Reddit threads are found, YouTube comments are replaced with a Reddit comment panel
 4. Comments are fetched and rendered as nested trees with all the Reddit metadata (scores, awards, flairs, avatars)
 
