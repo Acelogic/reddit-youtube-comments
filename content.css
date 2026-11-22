@@ -321,6 +321,27 @@ html[dark] #ryt-container {
   color: var(--ryt-text);
 }
 
+/* "Hide r/…" — adds the subreddit to the user's hidden list */
+.ryt-hide-sub {
+  margin-left: auto;
+  padding: 2px 10px;
+  border: 1px solid var(--ryt-border);
+  border-radius: 12px;
+  background: transparent;
+  color: var(--ryt-text-secondary);
+  font-size: 11px;
+  font-family: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s;
+}
+
+.ryt-hide-sub:hover {
+  border-color: var(--ryt-accent);
+  color: var(--ryt-text);
+  background: var(--ryt-hover);
+}
+
 /* Post image */
 .ryt-post-image {
   margin-top: 12px;

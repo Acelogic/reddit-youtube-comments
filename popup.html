@@ -53,6 +53,20 @@
         <option value="50">50</option>
       </select>
     </div>
+    <div class="setting-row setting-stack">
+      <label for="hidden-subreddit-input">
+        <span class="setting-name">Hidden subreddits</span>
+        <span class="setting-help">Threads from these subreddits are never shown.</span>
+      </label>
+      <form id="hidden-subreddit-form" class="chip-form" autocomplete="off">
+        <span class="chip-prefix" aria-hidden="true">r/</span>
+        <input id="hidden-subreddit-input" type="text" placeholder="subreddit name" maxlength="60"
+               spellcheck="false" autocapitalize="off" aria-describedby="hidden-subreddit-message">
+        <button type="submit">Hide</button>
+      </form>
+      <div id="hidden-subreddit-message" class="chip-message" role="status" aria-live="polite"></div>
+      <ul id="hidden-subreddit-list" class="chip-list" aria-label="Hidden subreddits"></ul>
+    </div>
     <div id="settings-status" role="status" aria-live="polite"></div>
   </section>
   <div id="signin-notice" class="notice hidden" role="status">
@@ -66,6 +80,7 @@
     <div id="not-video" class="state hidden">Navigate to a YouTube video to see Reddit discussions.</div>
     <div id="error" class="state hidden">Failed to search Reddit. Try again later.</div>
     <div id="threads"></div>
+    <div id="hidden-note" class="hidden-note hidden" role="status"></div>
   </div>
   <script src="utils.js"></script>
   <script src="popup.js"></script>

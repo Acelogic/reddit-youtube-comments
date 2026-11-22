@@ -387,23 +387,33 @@ function parsePublicComments(html) {
   return roots;
 }
 
+// Reddit answers a browser's very first request with 403 and sets its cookies
+// on that response; the same request then succeeds. One retry covers a browser
+// that has never visited Reddit.
+async function fetchPublicPage(url, what) {
+  let resp = await rateLimitedFetch(url, 'text/html');
+  if (resp.status === 403) {
+    await new Promise(resolve => setTimeout(resolve, 1200));
+    resp = await rateLimitedFetch(url, 'text/html');
+  }
+  if (!resp.ok) throw new Error(`Reddit ${what} page returned HTTP ${resp.status}`);
+  return resp.text();
+}
+
 async function searchRedditPublic(videoId) {
   const query = `url:${videoId}`;
-  const resp = await rateLimitedFetch(
+  const html = await fetchPublicPage(
     `https://www.reddit.com/search/?q=${encodeURIComponent(query)}&type=posts&sort=top`,
-    'text/html'
+    'search'
   );
-  if (!resp.ok) throw new Error(`Reddit search page returned HTTP ${resp.status}`);
-  return parsePublicSearch(await resp.text());
+  return parsePublicSearch(html);
 }
 
 async function fetchCommentsPublic(permalink, sort) {
   const pageUrl = new URL(permalink.replace(/\/?$/, '/'), 'https://www.reddit.com');
   pageUrl.hostname = 'www.reddit.com';
   pageUrl.searchParams.set('sort', sort === 'best' ? 'confidence' : sort);
-  const resp = await rateLimitedFetch(pageUrl.href, 'text/html');
-  if (!resp.ok) throw new Error(`Reddit thread page returned HTTP ${resp.status}`);
-  return parsePublicComments(await resp.text());
+  return parsePublicComments(await fetchPublicPage(pageUrl.href, 'thread'));
 }
 
 async function fetchMorePublic(more) {
@@ -502,7 +512,7 @@ async function searchReddit(videoId, force = false) {
         try {
           allPosts = await searchRedditPublic(videoId);
         } catch (e) {
-          throw oldRedditError;
+          throw new Error(`${oldRedditError.message}; ${e.message}`);
         }
       }
     }
@@ -649,6 +659,26 @@ async function setSortPref(sort) {
   });
 }
 
+// --- Hidden subreddits ---
+// The user's list lives in storage as lowercase names. It is applied to each
+// answer rather than to the cache, so a change takes effect on the next search.
+
+function getHiddenSubreddits() {
+  return new Promise(resolve => {
+    chrome.storage.local.get({ hiddenSubreddits: [] }, data => {
+      const list = Array.isArray(data?.hiddenSubreddits) ? data.hiddenSubreddits : [];
+      resolve(new Set(list.map(name => String(name).toLowerCase())));
+    });
+  });
+}
+
+function applySubredditFilter(result, hidden) {
+  const all = result.posts || [];
+  const nameOf = post => String(post.subreddit || '').replace(/^\/?r\//i, '').toLowerCase();
+  const posts = hidden.size ? all.filter(post => !hidden.has(nameOf(post))) : all;
+  return { ...result, posts, hiddenCount: all.length - posts.length };
+}
+
 // --- Icon management ---
 
 function updateIcon(tabId, postCount) {
@@ -668,7 +698,11 @@ function updateIcon(tabId, postCount) {
 
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg.type === 'SEARCH_VIDEO') {
-    searchReddit(msg.videoId, msg.force === true).then(result => {
+    Promise.all([
+      searchReddit(msg.videoId, msg.force === true),
+      getHiddenSubreddits(),
+    ]).then(([found, hidden]) => {
+      const result = applySubredditFilter(found, hidden);
       const tabId = sender.tab?.id || msg.tabId;
       if (tabId) updateIcon(tabId, result.posts.length);
       sendResponse(result);

@@ -12,6 +12,7 @@
   let currentPostId = null; // for "load more" children
   let signedOut = false; // Reddit asked for a login, so results are limited
   let forceNextSearch = false; // Retry / "I've signed in": skip caches once
+  let hiddenCount = 0; // threads left out by the user's subreddit filter
 
   const DEFAULT_SETTINGS = {
     threadLayout: 'cards',
@@ -75,6 +76,13 @@
 
   chrome.storage.onChanged.addListener((changes, areaName) => {
     if (areaName !== 'local') return;
+
+    // The hidden-subreddit list is applied by the background script, so a
+    // change means asking it again (the search itself is cached there).
+    if (changes.hiddenSubreddits && currentVideoId) {
+      currentVideoId = null;
+      onNavigate();
+    }
 
     const settingKeys = Object.keys(DEFAULT_SETTINGS);
     if (!settingKeys.some(key => changes[key])) return;
@@ -243,6 +251,7 @@
       if (videoId !== currentVideoId || panel !== container) return;
       container.innerHTML = '';
       signedOut = result?.signedOut === true;
+      hiddenCount = result?.hiddenCount || 0;
 
       if (!result?.ok || !result.posts.length) {
         // No Reddit threads — show YouTube comments, keep a minimal header with retry
@@ -258,9 +267,13 @@
         title.textContent = 'Reddit Comments';
         const info = document.createElement('span');
         info.className = 'ryt-header-count';
-        info.textContent = !result?.ok && signedOut
-          ? 'Sign in to Reddit to load threads'
-          : 'No threads found';
+        if (!result?.ok && signedOut) {
+          info.textContent = 'Sign in to Reddit to load threads';
+        } else if (hiddenCount) {
+          info.textContent = `No threads shown · ${hiddenCount} hidden by your subreddit filter`;
+        } else {
+          info.textContent = 'No threads found';
+        }
         headerLeft.appendChild(title);
         headerLeft.appendChild(info);
 
@@ -280,6 +293,20 @@
       activeThreadIdx = 0;
       applySectionMode();
       renderFullView();
+    });
+  }
+
+  // Add a subreddit to the user's hidden list. The storage listener then
+  // re-runs the search, which comes back without that subreddit's threads.
+  function hideSubreddit(subreddit) {
+    const [name] = parseSubredditList(subreddit);
+    if (!name) return;
+    chrome.storage.local.get({ hiddenSubreddits: [] }, stored => {
+      const current = parseSubredditList(
+        Array.isArray(stored?.hiddenSubreddits) ? stored.hiddenSubreddits.join(' ') : ''
+      );
+      if (current.includes(name)) return;
+      chrome.storage.local.set({ hiddenSubreddits: [...current, name] });
     });
   }
 
@@ -337,7 +364,9 @@
 
     const count = document.createElement('span');
     count.className = 'ryt-header-count';
-    count.textContent = `${cachedPosts.length} thread${cachedPosts.length !== 1 ? 's' : ''} found`;
+    count.textContent = `${cachedPosts.length} thread${cachedPosts.length !== 1 ? 's' : ''} found` +
+      (hiddenCount ? ` · ${hiddenCount} hidden` : '');
+    if (hiddenCount) count.title = 'Hidden by your subreddit filter. Manage it in the extension popup.';
 
     headerLeft.appendChild(title);
     headerLeft.appendChild(count);
@@ -508,9 +537,12 @@
         <span>${timeAgo(post.created_utc)}</span>
         <span>&middot;</span>
         <span class="ryt-thread-score">&uarr; ${formatScore(post.score)}</span>
+        <button class="ryt-hide-sub" type="button" title="Never show threads from r/${escapeHtml(post.subreddit)}. Undo in the extension popup.">Hide r/${escapeHtml(post.subreddit)}</button>
       </div>
       ${postImageHtml}
     `;
+    postHeader.querySelector('.ryt-hide-sub')
+      .addEventListener('click', () => hideSubreddit(post.subreddit));
     contentWrapper.appendChild(postHeader);
 
     // Sort dropdown

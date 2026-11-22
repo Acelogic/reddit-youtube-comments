@@ -22,6 +22,26 @@ function extractVideoId(url) {
   return null;
 }
 
+// "r/Videos, /r/politics news" -> ["videos", "politics", "news"]
+function parseSubredditList(text) {
+  const names = [];
+  for (const part of String(text || '').split(/[\s,;]+/)) {
+    const name = part.replace(/^\/?(r\/)?/i, '').replace(/\/+$/, '').toLowerCase();
+    if (/^[a-z0-9_]{2,40}$/.test(name) && !names.includes(name)) names.push(name);
+  }
+  return names;
+}
+
+// Exactly one subreddit name, or null. Accepts "videos", "r/videos", "/r/videos/"
+// and a pasted Reddit URL; anything else (spaces, commas, other characters) is
+// rejected rather than guessed at.
+function parseSubredditName(text) {
+  const value = String(text || '').trim();
+  const prefixed = value.match(/(?:^|\/)r\/([A-Za-z0-9_]{2,40})(?:[/?#].*)?$/i);
+  if (prefixed) return prefixed[1].toLowerCase();
+  return /^[A-Za-z0-9_]{2,40}$/.test(value) ? value.toLowerCase() : null;
+}
+
 function timeAgo(unixSeconds) {
   const seconds = Math.floor(Date.now() / 1000 - unixSeconds);
   if (seconds < 60) return 'just now';
