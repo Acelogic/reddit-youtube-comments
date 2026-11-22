@@ -55,6 +55,7 @@ npx web-ext run --firefox=firefox
 - **Dark mode** — Automatically matches YouTube's dark/light theme
 - **Hyperlinked everything** — Subreddits, usernames, post titles, and permalinks all link to Reddit
 - **Watch and live pages** — The in-page panel appears on `/watch?v=` and `/live/` pages; on Shorts and `/embed/` links, threads are listed in the toolbar popup
+- **Hide subreddits** — Keep threads from subreddits you don't want out of the panel and popup. Use "Hide r/…" on a thread, or edit the list in the popup's settings
 - **Works signed out** — Without a Reddit login you still get the top threads and comments, with a notice linking to Reddit's sign-in for the full set
 
 ## Privacy
